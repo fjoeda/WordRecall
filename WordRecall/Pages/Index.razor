@@ -1,0 +1,35 @@
+﻿@page "/"
+
+<div class="row justify-content-around begin-profile-card">
+    <h1 style="color: white; font-family:'Patrick Hand';">@topText</h1>
+</div>
+
+<div class="card next-profile-card d-flex" style="height: 300px; font-family :'Amatic SC';">
+    <div class="card-body align-items-center d-flex justify-content-center">
+        <h2>@mainMessage</h2>
+    </div>
+</div>
+<div class="card next-profile-card d-flex" style="height: 70px; font-family: 'Patrick Hand';">
+    <div class="card-body align-items-center d-flex justify-content-center">
+        <input class="form-control" placeholder="Type here then hit enter button to send command" @bind="inputMessage"
+               @onkeypress="KeyWasPressed" readonly="@isDeliveringMessage"/>
+    </div>
+</div>
+
+
+@code{
+    string mainMessage = "";
+    string topText = "Word Recall";
+    string inputMessage;
+    bool isDeliveringMessage = true;
+
+    private void KeyWasPressed(KeyboardEventArgs args)
+    {
+        if (args.Key.Equals("Enter"))
+        {
+            inputMessage = "";
+        }
+    }
+
+
+}
