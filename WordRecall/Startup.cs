@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WordRecall.Data;
+using WordRecall.Methods;
 
 namespace WordRecall
 {
@@ -29,6 +30,9 @@ namespace WordRecall
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
+            services.AddSingleton<GameHelper>();
+            services.AddSingleton<WitHelper>();
+            services.AddSingleton<FirestoreHelper>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,35 +1,329 @@
 ﻿@page "/"
+@using WordRecall.Methods;
+@inject WitHelper witHelper;
+@inject GameHelper gameHelper;
+@inject FirestoreHelper fsHelper;
+@using BlafettisLib;
+
 
 <div class="row justify-content-around begin-profile-card">
-    <h1 style="color: white; font-family:'Patrick Hand';">@topText</h1>
+    @if (timerEnabled)
+    {
+        <h1 style="color: white; font-family:'Patrick Hand';">@topText</h1>
+    }
+    else
+    {
+        <h1 style="color: white; font-family:'Patrick Hand';">Word Recall</h1>
+    }
 </div>
-
-<div class="card next-profile-card d-flex" style="height: 300px; font-family :'Amatic SC';">
-    <div class="card-body align-items-center d-flex justify-content-center">
-        <h2>@mainMessage</h2>
+@if (!showScores)
+{
+    <div class="card next-profile-card d-flex" style="height: 300px; font-family :'Patrick Hand';">
+        <div class="card-body align-items-center d-flex justify-content-center text-center">
+            <div>
+                <h2>@mainMessage</h2>
+            </div>
+            <div>
+                <Blafettis @ref="blafettis" />
+            </div>
+        </div>
     </div>
-</div>
+}
+else
+{
+    <div class="card next-profile-card d-flex" style="height: 300px; font-family :'Patrick Hand';">
+        <div class="card-body text-center">
+            <h2>Top 4 highscore</h2>
+
+            @if (listOfScores != null)
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int no = 0;
+                            foreach (var userScores in listOfScores)
+                            {
+
+                                if (userScores != null)
+                                {
+                                    no++;
+                                    <tr>
+                                        <td>@no</td>
+                                        <td>@userScores.name</td>
+                                        <td>@userScores.score</td>
+                                    </tr>
+                                    if (no > 4)
+                                        break;
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            }
+            <p>@belowScoreText</p>
+        </div>
+    </div>
+}
+
 <div class="card next-profile-card d-flex" style="height: 70px; font-family: 'Patrick Hand';">
     <div class="card-body align-items-center d-flex justify-content-center">
-        <input class="form-control" placeholder="Type here then hit enter button to send command" @bind="inputMessage"
-               @onkeypress="KeyWasPressed" readonly="@isDeliveringMessage"/>
+        <input class="form-control" placeholder="@placeHolderText" @bind="inputMessage" @onkeyup="KeyWasPressed" readonly="@isDeliveringMessage" />
     </div>
+
 </div>
 
 
 @code{
     string mainMessage = "";
     string topText = "Word Recall";
-    string inputMessage;
-    bool isDeliveringMessage = true;
+    string inputMessage = "";
+    bool isDeliveringMessage = false;
+    int timerCount = 0;
+    string placeHolderText = "Type here then hit enter to send command";
+    int score = 0;
+    bool showScores = false;
+    List<UserScoreModel> listOfScores;
+    string belowScoreText = "";
 
-    private void KeyWasPressed(KeyboardEventArgs args)
+    bool timerEnabled = false;
+    ConversationState state = ConversationState.initialGame;
+    double numWords = 2;
+    int correctlyGuessed = 0;
+    List<string> words = new List<string>();
+    string allWordsText = "";
+
+    protected Blafettis blafettis;
+
+
+    private InputModel inputModel = new InputModel();
+
+    protected override void OnInitialized()
+    {
+        ShowWordConvo(new string[] { "Hello!!", "Welcome to Word Recall, type 'play games' to begin!" });
+    }
+
+    private async void Submit()
+    {
+        await HandleConvoAsync(inputModel.Input);
+    }
+
+    private async void KeyWasPressed(KeyboardEventArgs args)
     {
         if (args.Key.Equals("Enter"))
         {
+            if (inputMessage != null)
+            {
+                var temp = inputMessage;
+                inputMessage = "";
+                await HandleConvoAsync(temp);
+            }
             inputMessage = "";
         }
     }
 
+    private async Task HandleConvoAsync(string input)
+    {
 
+        string intent = "";
+        if (!input.Equals(""))
+        {
+            switch (state)
+            {
+                case ConversationState.initialGame:
+                    score = 0;
+                    showScores = false;
+                    intent = await witHelper.GetIntent(input);
+                    if (intent.Equals("confirmation_yes") || intent.Equals("play_game"))
+                    {
+                        state = ConversationState.initialMessage;
+                        ShowWordConvo(new string[]
+                        {
+                            "Alright here's how it's played,",
+                            "I will show you some words, then you have to remind it and type the words back one by one",
+                            "can we start??"
+                                }, wordDelay: 3000);
+                    }
+                    placeHolderText = "Type here then hit enter to send command";
+                    break;
+                case ConversationState.initialMessage:
+                    intent = await witHelper.GetIntent(input);
+                    if (intent.Equals("confirmation_yes") || intent.Equals("play_game"))
+                    {
+                        PrepareQuestion();
+                    }
+                    placeHolderText = "Type here then hit enter to send command";
+                    break;
+                case ConversationState.theGame:
+                    placeHolderText = "Type the word one by one";
+                    if (words.Contains(input))
+                    {
+                        correctlyGuessed++;
+                        blafettis.RaiseConfetti();
+                        if (correctlyGuessed != int.Parse(Math.Floor(numWords).ToString()))
+                        {
+                            score += 10;
+                            words.Remove(input);
+                            ShowWordConvo(new string[]
+                            {
+                                $"{gameHelper.GetGoodGreet()}, {int.Parse(Math.Floor(numWords).ToString())-correctlyGuessed} words left!",
+                                    }, wordDelay: 200);
+                        }
+                        else
+                        {
+                            score += 10 + timerCount;
+                            timerEnabled = false;
+                            numWords += 0.34;
+                            blafettis.RaiseConfetti();
+                            ShowWordConvo(new string[]
+                            {
+                                $"Nice, you guessed it all, your score is {score}",
+                                "prepared for the next challenge",
+                                    });
+                            PrepareQuestion(initDelay: 6000);
+                        }
+                    }
+                    else
+                    {
+                        ShowWordConvo(new string[]
+                        {
+                            $"{gameHelper.GetNotGoodGreet()}",
+                                }, wordDelay: 200);
+                    }
+                    break;
+                case ConversationState.submitScore:
+                    isDeliveringMessage = true;
+                    Random rnd = new Random();
+                    var id = rnd.Next(100000);
+                    UserScoreModel model = new UserScoreModel() { generatedId = id, name = input, score = score };
+                    fsHelper.AddItem(model);
+                    await Task.Delay(4000);
+                    listOfScores = await fsHelper.GetAllUserScore();
+                    StateHasChanged();
+                    int urutan = 0;
+                    for (int i = 0; i < listOfScores.Count; i++)
+                    {
+                        if (listOfScores[i].generatedId == id)
+                        {
+                            urutan = i + 1;
+                        }
+                    }
+                    showScores = true;
+                    state = ConversationState.initialGame;
+                    belowScoreText = $"Your position is {urutan}/{listOfScores.Count} worldwide!!, type 'play games' to play again";
+                    isDeliveringMessage = false;
+                    StateHasChanged();
+                    break;
+                case ConversationState.endGame:
+                    break;
+            }
+        }
+        inputMessage = "";
+        StateHasChanged();
+    }
+
+    private async void ShowWordConvo(string[] words, int initDelay = 500, int wordDelay = 2000)
+    {
+        isDeliveringMessage = true;
+        await Task.Delay(initDelay);
+        foreach (var text in words)
+        {
+            mainMessage = text;
+            StateHasChanged();
+            await Task.Delay(wordDelay);
+        }
+        isDeliveringMessage = false;
+        StateHasChanged();
+    }
+
+    private async void ShowWordConvoBeforeGame(string[] words, int initDelay = 500, int wordDelay = 2000)
+    {
+        isDeliveringMessage = true;
+        await Task.Delay(initDelay);
+        foreach (var text in words)
+        {
+            mainMessage = text;
+            StateHasChanged();
+            await Task.Delay(2000);
+        }
+    }
+
+    private async void ShowWords(string[] words, int initDelay = 3000)
+    {
+        isDeliveringMessage = true;
+        StateHasChanged();
+        await Task.Delay(initDelay);
+        foreach (var text in words)
+        {
+            isDeliveringMessage = true;
+            mainMessage = text;
+            StateHasChanged();
+            await Task.Delay(1750);
+        }
+        mainMessage = "Guess the words!";
+        isDeliveringMessage = false;
+        StateHasChanged();
+        await StartTimerAsync();
+    }
+
+    private void PrepareQuestion(int initDelay = 500)
+    {
+        words = gameHelper.GetWords(int.Parse(Math.Floor(numWords).ToString()));
+        state = ConversationState.theGame;
+        allWordsText = "";
+        foreach (var word in words)
+        {
+            allWordsText += word + ", ";
+        }
+        ShowWordConvoBeforeGame(new string[]
+        {
+            $"I will show {words.Count} words",
+            $"You have {words.Count * 10} seconds to re-type all the word, be prepared",
+                }, initDelay);
+        ShowWords(words.ToArray(), initDelay + 4500);
+        correctlyGuessed = 0;
+    }
+
+    private async Task StartTimerAsync()
+    {
+        timerEnabled = true;
+        timerCount = (words.Count * 10) + 1;
+        topText = timerCount.ToString();
+        StateHasChanged();
+        while (timerCount > 0)
+        {
+            if (timerEnabled)
+            {
+                timerCount--;
+                topText = timerCount.ToString();
+                StateHasChanged();
+                await Task.Delay(1000);
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (timerEnabled)
+            await TimerOver();
+    }
+
+    private Task TimerOver()
+    {
+        timerEnabled = false;
+        state = ConversationState.submitScore;
+        ShowWordConvo(new string[]
+        {
+            $"time's up!!",
+            $"the words are : {allWordsText} {Environment.NewLine} your score is {score} {Environment.NewLine} type your name and hit enter to submit your online score"
+                });
+        placeHolderText = "type your name and hit enter to submit your online score";
+        return Task.CompletedTask;
+    }
 }

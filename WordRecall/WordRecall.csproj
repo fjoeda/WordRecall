@@ -5,7 +5,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Methods\" />
+    <None Remove="Data\engmix.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="engmix.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="blazor-dom-confetti" Version="0.0.0.2" />
+    <PackageReference Include="Google.Cloud.Firestore" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="RestSharp" Version="106.11.7" />
   </ItemGroup>
 
 </Project>
