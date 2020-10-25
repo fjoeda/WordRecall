@@ -12,7 +12,7 @@ namespace WordRecall.Methods
         FirestoreDb database;
         public FirestoreHelper()
         {
-            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", AppDomain.CurrentDomain.BaseDirectory + "/wordrecall-4a3da-8f5f4914d6ea.json");
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", AppDomain.CurrentDomain.BaseDirectory + "/aksldmalsd.json");
             projectId = "wordrecall-4a3da";
             database = FirestoreDb.Create(projectId);
         }

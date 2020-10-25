@@ -31,9 +31,9 @@
 }
 else
 {
-    <div class="card next-profile-card d-flex" style="height: 300px; font-family :'Patrick Hand';">
+    <div class="card next-profile-card d-flex" style="height: 380px; font-family :'Patrick Hand';">
         <div class="card-body text-center">
-            <h2>Top 4 highscore</h2>
+            <h4>Top 4 highscore</h4>
 
             @if (listOfScores != null)
             {
@@ -59,7 +59,7 @@ else
                                         <td>@userScores.name</td>
                                         <td>@userScores.score</td>
                                     </tr>
-                                    if (no > 4)
+                                    if (no > 3)
                                         break;
                                 }
                             }
@@ -184,7 +184,7 @@ else
                             ShowWordConvo(new string[]
                             {
                                 $"Nice, you guessed it all, your score is {score}",
-                                "prepared for the next challenge",
+                                "prepare for the next challenge",
                                     });
                             PrepareQuestion(initDelay: 6000);
                         }
@@ -218,6 +218,7 @@ else
                     state = ConversationState.initialGame;
                     belowScoreText = $"Your position is {urutan}/{listOfScores.Count} worldwide!!, type 'play games' to play again";
                     isDeliveringMessage = false;
+                    placeHolderText = "Type here then hit enter to send command";
                     StateHasChanged();
                     break;
                 case ConversationState.endGame:

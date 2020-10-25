@@ -5,11 +5,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\engmix.entxt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Data\engmix.txt" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="engmix.txt">
+    <EmbeddedResource Include="engmix.entxt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="wwwroot\engmix.entxt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
